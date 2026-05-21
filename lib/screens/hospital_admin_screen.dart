@@ -1,0 +1,495 @@
+// REQ-9: Consistent inline error messages (no snackbar above keyboard on write operations)
+// REQ-12: CNP displayed alongside patient name everywhere
+// REQ-13: Relationship field removed from companion link dialog
+// REQ-14: Search bar + scroll in patient/companion popup
+// REQ-18: Active status removed from create forms
+
+import 'package:flutter/material.dart';
+import '../models/user_model.dart';
+import '../services/admin_service.dart';
+import '../services/auth_service.dart';
+import '../services/document_service.dart';
+import '../i18n/translations.dart';
+import 'login_screen.dart';
+import 'user_form_dialog.dart';
+import 'companion_link_dialog.dart';
+import 'pdf_viewer_screen.dart';
+import "../i18n/language_provider.dart";
+import '../theme/app_colors.dart';
+import '../widgets/app_footer.dart';
+
+class HospitalAdminScreen extends StatefulWidget {
+  final UserModel user;
+  const HospitalAdminScreen({super.key, required this.user});
+
+  @override
+  State<HospitalAdminScreen> createState() => _HospitalAdminScreenState();
+}
+
+class _HospitalAdminScreenState extends State<HospitalAdminScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  final _admin = AdminService();
+  final _docService = DocumentService();
+
+  List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _documents = [];
+  bool _loadingU = true;
+  bool _loadingD = true;
+
+  String _tr(String key) => AppLocalizations.of(context).get(key);
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _loadUsers();
+    _loadDocs();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() => _loadingU = true);
+    final list = await _admin.getUsers();
+    if (mounted) {
+      setState(() {
+        _users = list;
+        _loadingU = false;
+      });
+    }
+  }
+
+  Future<void> _loadDocs() async {
+    setState(() => _loadingD = true);
+    final list = await _docService.getDocuments();
+    if (mounted) {
+      setState(() {
+        _documents = list;
+        _loadingD = false;
+      });
+    }
+  }
+
+  // REQ-9: Use success snackbar only for non-error confirmations;
+  // errors are shown inline within dialogs (via UserFormDialog's own inline error)
+  void _snackSuccess(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.success,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
+  // For errors that happen outside of dialogs (e.g., link companion failure),
+  // show a centered visible snackbar with longer duration
+  void _snackError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Center(
+        child: Text(
+          msg,
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+      ),
+      backgroundColor: AppColors.error,
+      duration: const Duration(seconds: 6),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ));
+  }
+
+  Future<void> _logout() async {
+    await AuthService().logout();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+  }
+
+  Future<void> _addUser() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => UserFormDialog(hospitals: [], isHospitalAdmin: true),
+    );
+    if (result == null) return;
+    final r = await _admin.createUser(result);
+    if (r['success'] == true) {
+      _snackSuccess(_tr('user_created'));
+      _loadUsers();
+    } else {
+      // Error shown inline within the dialog itself (REQ-9)
+      // But if dialog already closed, show here
+      _snackError(_tr((r['message'] ?? 'create_error').toString()));
+    }
+  }
+
+  Future<void> _editUser(Map<String, dynamic> u) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) =>
+          UserFormDialog(hospitals: [], existing: u, isHospitalAdmin: true),
+    );
+    if (result == null) return;
+    final r = await _admin.updateUser(u['id'], result);
+    if (r['success'] == true) {
+      _snackSuccess(_tr('updated'));
+      _loadUsers();
+    } else {
+      _snackError(_tr((r['message'] ?? 'update_error').toString()));
+    }
+  }
+
+  Future<void> _deleteUser(Map<String, dynamic> u) async {
+    final ok = await _confirm(
+      _tr('delete_user'),
+      '${_tr('delete_user_confirm')} "${u['name']}"?',
+    );
+    if (!ok) return;
+    if (await _admin.deleteUser(u['id'])) {
+      _snackSuccess(_tr('removed'));
+      _loadUsers();
+    } else {
+      _snackError(_tr('delete_error'));
+    }
+  }
+
+  Future<void> _linkCompanion() async {
+    final patients = _users.where((u) => u['role'] == 'patient').toList();
+    final companions = _users.where((u) => u['role'] == 'companion').toList();
+    if (patients.isEmpty || companions.isEmpty) {
+      _snackError(_tr('missing_companions'));
+      return;
+    }
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) =>
+          CompanionLinkDialog(patients: patients, companions: companions),
+    );
+    if (result == null) return;
+    final r = await _admin.linkCompanion(
+      patientId: result['patient_id'],
+      companionId: result['companion_id'],
+    );
+    if (r['success'] == true) {
+      _snackSuccess(_tr((r['message'] ?? 'linked_success').toString()));
+    } else {
+      _snackError(_tr((r['message'] ?? 'remove_link_error').toString()));
+    }
+  }
+
+  Future<bool> _confirm(String title, String content) async {
+    final v = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title, textAlign: TextAlign.center),
+        content: Text(content, textAlign: TextAlign.center),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(_tr('cancel'))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(_tr('confirm'),
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    return v == true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.appBar,
+        foregroundColor: Colors.white,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_tr('hospital_admin'),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              overflow: TextOverflow.ellipsis),
+          Text('${widget.user.name} · ${_tr('role_hospital_admin')}',
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+              overflow: TextOverflow.ellipsis),
+        ]),
+        actions: [
+          const LanguageDropdown(),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout)
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          tabs: [
+            Tab(icon: const Icon(Icons.people_outline), text: _tr('users')),
+            Tab(
+                icon: const Icon(Icons.person_add_outlined),
+                text: _tr('companions_tab')),
+            Tab(
+                icon: const Icon(Icons.folder_outlined),
+                text: _tr('documents_tab')),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: TabBarView(controller: _tabs, children: [
+              _usersTab(),
+              _companionTab(),
+              _docsTab(),
+            ]),
+          ),
+          const AppFooter(),
+        ],
+      ),
+    );
+  }
+
+  Widget _usersTab() {
+    if (_loadingU) return const Center(child: CircularProgressIndicator());
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _addUser,
+            icon: const Icon(Icons.person_add_outlined),
+            label: Text(_tr('add_user')),
+            style: _btnStyle(),
+          ),
+        ),
+      ),
+      Expanded(
+        child: RefreshIndicator(
+          onRefresh: _loadUsers,
+          child: _users.isEmpty
+              ? Center(child: Text(_tr('no_users')))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _users.length,
+                  itemBuilder: (_, i) => _userCard(_users[i]),
+                ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _companionTab() {
+    final patients = _users.where((u) => u['role'] == 'patient').toList();
+    final companions = _users.where((u) => u['role'] == 'companion').toList();
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _linkCompanion,
+            icon: const Icon(Icons.person_add_outlined),
+            label: Text(_tr('add_companion_link')),
+            style: _btnStyle(),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _sectionHeader('${_tr('patients_tab')} (${patients.length})'),
+        const SizedBox(height: 8),
+        // REQ-12: CNP shown prominently
+        ...patients.map((p) => _simpleTile(
+            icon: Icons.person,
+            title: p['name'] ?? '',
+            subtitle: p['cnp_pacient'] != null
+                ? '${_tr('cnp')}: ${p['cnp_pacient']} · ${p['email'] ?? ''}'
+                : (p['email'] ?? ''),
+            color: AppColors.primary)),
+        const SizedBox(height: 16),
+        _sectionHeader('${_tr('companions_tab')} (${companions.length})'),
+        const SizedBox(height: 8),
+        ...companions.map((c) => _simpleTile(
+            icon: Icons.people,
+            title: c['name'] ?? '',
+            subtitle: c['cnp_pacient'] != null
+                ? '${_tr('cnp')}: ${c['cnp_pacient']} · ${c['email'] ?? ''}'
+                : (c['email'] ?? ''),
+            color: AppColors.primary)),
+      ]),
+    );
+  }
+
+  Widget _docsTab() {
+    if (_loadingD) return const Center(child: CircularProgressIndicator());
+    return RefreshIndicator(
+      onRefresh: _loadDocs,
+      child: _documents.isEmpty
+          ? Center(child: Text(_tr('no_documents')))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _documents.length,
+              itemBuilder: (_, i) {
+                final doc = _documents[i];
+                final ownerName = doc['owner']?['name'] ?? '';
+                // REQ-12: CNP shown in document list
+                final ownerCnp = doc['owner']?['cnp_pacient'];
+                final cnpLabel =
+                    ownerCnp != null ? ' · ${_tr('cnp')}: $ownerCnp' : '';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PdfViewerScreen(
+                              url: doc['url'], name: doc['name']),
+                        )),
+                    child: ListTile(
+                      leading: const Icon(Icons.picture_as_pdf,
+                          color: AppColors.primary, size: 28),
+                      title: Text(doc['name'] ?? '',
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(ownerName, style: const TextStyle(fontSize: 12)),
+                          if (ownerCnp != null)
+                            Text('${_tr('cnp')}: $ownerCnp$cnpLabel',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.w500)),
+                          Text(doc['created_at'] ?? '',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey.shade400)),
+                        ],
+                      ),
+                      isThreeLine: ownerCnp != null,
+                      trailing: const Icon(Icons.chevron_right,
+                          color: AppColors.primary),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _userCard(Map<String, dynamic> u) {
+    final roleColors = {
+      'hospital_admin': AppColors.roleHospitalAdmin,
+      'doctor': AppColors.roleDoctor,
+      'patient': AppColors.primary,
+      'companion': AppColors.roleCompanion,
+    };
+    final color = roleColors[u['role']] ?? Colors.grey;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: CircleAvatar(
+            backgroundColor: color.withOpacity(0.15),
+            child: Icon(Icons.person, color: color)),
+        title: Text(u['name'] ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(u['email'] ?? ''),
+          // REQ-12: show CNP for patients AND companions
+          if ((u['role'] == 'patient' || u['role'] == 'companion') &&
+              u['cnp_pacient'] != null)
+            Container(
+              margin: const EdgeInsets.only(top: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6)),
+              child: Text('${_tr('cnp')}: ${u['cnp_pacient']}',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600)),
+            ),
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20)),
+            child: Text(_roleLabel(u['role']),
+                style: TextStyle(
+                    color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          ),
+        ]),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          IconButton(
+              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+              onPressed: () => _editUser(u)),
+          IconButton(
+              icon: Icon(Icons.delete_outline, color: AppColors.primaryWithOpacity(0.5)),
+              onPressed: () => _deleteUser(u)),
+        ]),
+        isThreeLine: (u['role'] == 'patient' || u['role'] == 'companion') &&
+            u['cnp_pacient'] != null,
+      ),
+    );
+  }
+
+  Widget _simpleTile(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required Color color}) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        leading: CircleAvatar(
+            backgroundColor: color.withOpacity(0.12),
+            child: Icon(icon, color: color, size: 20)),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String text) => Text(text,
+      style: const TextStyle(
+          fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary));
+
+  ButtonStyle _btnStyle() => ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)));
+
+  String _roleLabel(String? role) {
+    switch (role) {
+      case 'hospital_admin':
+        return _tr('role_hospital_admin');
+      case 'doctor':
+        return _tr('role_doctor');
+      case 'patient':
+        return _tr('role_patient_label');
+      case 'companion':
+        return _tr('role_companion_label');
+      default:
+        return role ?? '';
+    }
+  }
+}

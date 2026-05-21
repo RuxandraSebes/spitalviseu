@@ -1,0 +1,51 @@
+name: spital_visu_upu
+description: Aplicație mobilă pentru UPU Spitalul Vișeu de Sus
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter_localizations:
+    sdk: flutter
+  flutter_svg: ^2.0.10+1
+  flutter:
+    sdk: flutter
+  app_links: ^6.0.0
+
+  # Networking
+  http: ^1.2.0
+  http_parser: ^4.0.2
+
+  # Secure token storage
+  flutter_secure_storage: ^9.0.0
+
+  # File picking (PDF upload)
+  file_picker: ^8.0.0
+
+  # PDF viewing (native mobile)
+  flutter_pdfview: ^1.4.4
+
+  # Temp directory for downloaded PDFs
+  path_provider: ^2.1.2
+
+  # URL launcher (optional utility)
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.svg
+    - assets/logo_with acronym-01.png
+    - assets/GDPR.pdf
+    - assets/Terms_and_conditions.pdf
+    - assets/disclaimer huskroua.pdf
+    - assets/slogan-01.png
+    - assets/pictograma P2_inverse.png
+    - assets/emblemaHUSKROUA ENI logo_final_grey_20-01.png
