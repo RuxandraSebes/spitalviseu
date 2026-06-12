@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:spital_visu_upu/data/models/user_model.dart';
+import 'package:spital_visu_upu/data/services/auth_service.dart';
+import 'package:spital_visu_upu/i18n/language_provider.dart';
+import 'package:spital_visu_upu/features/auth/presentation/screens/register_screen.dart';
+import 'package:spital_visu_upu/core/theme/app_colors.dart';
+import 'package:spital_visu_upu/shared/widgets/app_footer.dart';
+import 'package:spital_visu_upu/core/routing/app_router.dart';
+import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
+import 'package:spital_visu_upu/shared/utils/app_snackbar.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _auth = AuthService();
+  bool _loading = false;
+  bool _obscure = true;
+
+  String _tr(String key) => LanguageProvider.of(context)?.tr(key) ?? key;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _snack(_tr('fill_all_fields'), isError: true);
+      return;
+    }
+
+    setState(() => _loading = true);
+    final result = await _auth.login(email, password);
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (result['success'] == true) {
+      final user = result['user'] as UserModel;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => roleBasedHome(user)),
+        (_) => false,
+      );
+    } else {
+      // result['message'] is an i18n key (e.g. 'error_invalid_credentials')
+      // — translate it before displaying.
+      final rawKey = result['message'] as String? ?? 'error';
+      _snack(_tr(rawKey), isError: true);
+    }
+  }
+
+  void _snack(String msg, {bool isError = false}) {
+    showAppSnackBar(context, msg, isError: isError);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ProgramEmblemBackground(
+                child: Stack(
+                  children: [
+                    Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                    Image.asset(
+                      'assets/logo_with acronym-01.png',
+                      height: 170,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _tr('portal_upu'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(children: [
+                          _field(
+                            controller: _emailCtrl,
+                            label: _tr('email'),
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          _field(
+                            controller: _passwordCtrl,
+                            label: _tr('password'),
+                            icon: Icons.lock_outline,
+                            obscure: _obscure,
+                            suffix: IconButton(
+                              icon: Icon(_obscure
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: _loading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white))
+                                  : Text(
+                                      _tr('login'),
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RegisterScreen()),
+                      ),
+                      child: Text(
+                        _tr('no_account_register'),
+                        style: const TextStyle(color: AppColors.primary),
+                      ),
+                    ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: const LanguageDropdown(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const AppFooter(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscure = false,
+    Widget? suffix,
+  }) =>
+      TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscure,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: AppColors.primary),
+          suffixIcon: suffix,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+        ),
+      );
+}

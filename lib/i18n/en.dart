@@ -5,11 +5,12 @@ const Map<String, String> translationsEn = {
   'email': 'Email',
   'password': 'Password',
   'name': 'Full Name',
-  'portal_upu': 'Emergency Portal',
+  'portal_upu': 'Emergency Admissions Portal',
   'no_account': "Don't have an account? Register",
   'have_account': 'Already have an account? Sign In',
   'create_account': 'Create Account',
-  'register_subtitle': 'Register to access the emergency portal',
+  'register_subtitle':
+      'Register to access the emergency admissions portal',
   'password_min': 'Password * (min. 6 characters)',
   'cnp_field': 'CNP * (13 digits)',
   'hospital_optional': 'Hospital (optional)',
@@ -372,6 +373,7 @@ const Map<String, String> translationsEn = {
   'backend_cnp_not_identified':
       'Patient CNP could not be identified. Provide cnp_pacient explicitly or include it in filename/PDF text.',
   'about_project_title': 'Health Bridge for Border Communities',
+  'about_us': 'About us',
   'about_project_subtitle':
       '(Puntea Sănătății pentru comunitățile apropiate)',
   'about_project_description':
@@ -398,12 +400,16 @@ const Map<String, String> translationsEn = {
   'terms_and_conditions': 'terms and conditions',
   'accept_privacy_prefix': 'I accept the ',
   'privacy_policy': 'privacy policy',
+  'accept_disclaimer_prefix': 'I accept the ',
   'error_accept_legal':
-      'You must accept the terms and conditions and privacy policy to register.',
+      'You must accept the terms and conditions, privacy policy, and project disclaimer to register.',
   'error_accept_legal_both':
-      'You must accept the terms and conditions and the privacy policy.',
+      'You must accept the terms and conditions, privacy policy, and project disclaimer.',
+  'error_accept_legal_all':
+      'You must accept the terms and conditions, privacy policy, and project disclaimer.',
   'error_accept_terms': 'You must accept the terms and conditions.',
   'error_accept_privacy': 'You must accept the privacy policy.',
+  'error_accept_disclaimer': 'You must accept the project disclaimer.',
   'close': 'Close',
   'loading_document': 'Loading document...',
 };

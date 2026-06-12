@@ -1,17 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:spital_visu_upu/app/my_app.dart';
 import 'package:spital_visu_upu/i18n/language_provider.dart';
-import 'package:spital_visu_upu/i18n/translations.dart';
-import 'models/user_model.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/global_admin_screen.dart';
-import 'screens/hospital_admin_screen.dart';
-import 'screens/doctor_screen.dart';
-import 'screens/claim_account_screen.dart';
-import 'services/auth_service.dart';
-import 'theme/app_colors.dart';
-import 'theme/app_theme.dart';
 
 /// Application entry point.
 void main() {
@@ -20,96 +9,4 @@ void main() {
       child: MyApp(),
     ),
   );
-}
-
-/// Root widget configuring locale, theme, and the auth gate.
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final locale = LanguageProvider.localeOf(context);
-
-    return MaterialApp(
-      title: 'Spital Vișeu UPU',
-      debugShowCheckedModeBanner: false,
-      locale: locale,
-      localizationsDelegates: const [
-        AppLocalizationsDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ro'),
-        Locale('en'),
-        Locale('hu'),
-        Locale('uk'),
-        Locale('sk'),
-      ],
-
-      theme: AppTheme.light(),
-      home: const AuthGate(),
-    );
-  }
-}
-
-/// Checks local token and routes to the correct screen.
-/// Also detects Hipocrate auto-created patients and shows the claim screen.
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: AuthService().isLoggedIn(),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return const Scaffold(
-              body: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary)));
-        }
-        if (snap.data == true) {
-          return FutureBuilder<UserModel?>(
-            future: AuthService().getCachedUser(),
-            builder: (context, userSnap) {
-              if (!userSnap.hasData) {
-                return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()));
-              }
-              final user = userSnap.data;
-              if (user == null) return const LoginScreen();
-
-              if (ClaimAccountScreen.needsClaim(user)) {
-                return ClaimAccountScreen(user: user);
-              }
-
-              return roleBasedHome(user);
-            },
-          );
-        }
-        return const LoginScreen();
-      },
-    );
-  }
-}
-
-/// Navigates to the home screen matching [user]'s role after login or register.
-Widget roleBasedHome(UserModel user) {
-  if (ClaimAccountScreen.needsClaim(user)) {
-    return ClaimAccountScreen(user: user);
-  }
-
-  switch (user.role) {
-    case 'global_admin':
-      return GlobalAdminScreen(user: user);
-    case 'hospital_admin':
-      return HospitalAdminScreen(user: user);
-    case 'doctor':
-      return DoctorScreen(user: user);
-    case 'patient':
-    case 'companion':
-    default:
-      return HomeScreen(user: user);
-  }
 }

@@ -1,0 +1,349 @@
+// REQ-3: Trash icon for removing companions/patients
+// REQ-5: Patient can view and remove companions
+// REQ-6: Companion can view and remove patients
+// REQ-6-ext: Show CNP instead of email in relationships
+// REQ-5-ext: Management row for both roles
+
+import 'package:flutter/material.dart';
+import 'package:spital_visu_upu/data/models/user_model.dart';
+import 'package:spital_visu_upu/data/services/access_code_service.dart';
+import 'package:spital_visu_upu/i18n/translations.dart';
+import 'package:spital_visu_upu/core/theme/app_colors.dart';
+import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
+
+/// REQ-5: Patients can view and remove their companions.
+/// REQ-6: Companions can view and remove their linked patients.
+class MyCompanionsScreen extends StatefulWidget {
+  final UserModel user;
+  const MyCompanionsScreen({super.key, required this.user});
+
+  @override
+  State<MyCompanionsScreen> createState() => _MyCompanionsScreenState();
+}
+
+class _MyCompanionsScreenState extends State<MyCompanionsScreen> {
+  final _service = AccessCodeService();
+  List<Map<String, dynamic>> _people = [];
+  bool _loading = true;
+
+  bool get _isPatient => widget.user.isPatient;
+
+  String _tr(String key) => AppLocalizations.of(context).get(key);
+
+  String get _title => _isPatient ? _tr('my_companions') : _tr('my_patients');
+  String get _emptyText =>
+      _isPatient ? _tr('no_companions') : _tr('not_associated');
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final data = _isPatient
+        ? await _service.getMyCompanions()
+        : await _service.getMyPatients();
+    if (mounted) {
+      setState(() {
+        _people = data;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _remove(Map<String, dynamic> person) async {
+    final name = person['name'] ?? '';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.warning_amber_rounded,
+              color: AppColors.primary, size: 28),
+          const SizedBox(width: 8),
+          Text(_isPatient ? _tr('remove_companion') : _tr('remove_patient'),
+              textAlign: TextAlign.center),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('${_tr('remove_access')}\n"$name"?',
+              textAlign: TextAlign.center),
+        ]),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_tr('cancel')),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text(_tr('remove')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    bool ok;
+    if (_isPatient) {
+      ok = await _service.unlinkCompanion(person['id']);
+    } else {
+      ok = await _service.unlinkPatient(person['id']);
+    }
+
+    if (mounted) {
+      if (ok) {
+        _showSnack('$name ${_tr('removed')}');
+        _load();
+      } else {
+        _showError(_tr('remove_link_error'));
+      }
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.success,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Center(
+          child: Text(msg,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center)),
+      backgroundColor: AppColors.error,
+      duration: const Duration(seconds: 5),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
+  }
+
+  String _bannerText() {
+    final n = _people.length;
+    if (_isPatient) {
+      return '$n ${n == 1 ? _tr('companions_count_singular') : _tr('companions_count_plural')}';
+    } else {
+      return '$n ${n == 1 ? _tr('patients_count_singular') : _tr('patients_count_plural')}';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.appBar,
+        foregroundColor: Colors.white,
+        title:
+            Text(_title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: _tr('refresh'),
+              onPressed: _load),
+        ],
+      ),
+      body: ProgramEmblemBackground(
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary))
+            : _people.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: Column(children: [
+                      Container(
+                        color: _isPatient
+                            ? AppColors.primary.withOpacity(0.07)
+                            : AppColors.primary.withOpacity(0.07),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        child: Row(children: [
+                          Icon(
+                            _isPatient
+                                ? Icons.people_alt_outlined
+                                : Icons.person_outline,
+                            color: _isPatient
+                                ? AppColors.primary
+                                : AppColors.primary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Text(
+                            _bannerText(),
+                            style: TextStyle(
+                              color: _isPatient
+                                  ? AppColors.primary
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          )),
+                        ]),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _people.length,
+                          itemBuilder: (_, i) {
+                            final person = _people[i];
+                            return _PersonCard(
+                              person: person,
+                              isPatient: _isPatient,
+                              cnpLabel: _tr('cnp'),
+                              onRemove: () => _remove(person),
+                            );
+                          },
+                        ),
+                      ),
+                    ]),
+                  ),
+      ),
+    );
+  }
+
+  Widget _emptyState() => Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _isPatient ? Icons.people_outline : Icons.person_outline,
+              size: 52,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(_emptyText,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(
+            _isPatient
+                ? _tr('empty_hint_patient')
+                : _tr('empty_hint_companion'),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            textAlign: TextAlign.center,
+          ),
+        ]),
+      );
+}
+
+class _PersonCard extends StatelessWidget {
+  final Map<String, dynamic> person;
+  final bool isPatient;
+  final String cnpLabel;
+  final VoidCallback onRemove;
+
+  const _PersonCard({
+    required this.person,
+    required this.isPatient,
+    required this.cnpLabel,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isPatient ? AppColors.primary : AppColors.primary;
+    // REQ-6: Show CNP instead of email
+    final cnp = person['cnp_pacient'] as String?;
+    final email = person['email'] as String?;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isPatient ? Icons.people_alt : Icons.person,
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(person['name'] ?? '',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 4),
+              // REQ-6: Prefer CNP over email
+              if (cnp != null && cnp.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.badge_outlined, size: 12, color: color),
+                    const SizedBox(width: 4),
+                    Text('$cnpLabel: $cnp',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: color,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                )
+              else if (email != null)
+                Row(children: [
+                  Icon(Icons.email_outlined,
+                      size: 13, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(email,
+                      style:
+                          TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                ]),
+            ]),
+          ),
+          // REQ-3: Clear trash/delete icon
+          Material(
+            color: AppColors.primaryWithOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onRemove,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Icon(Icons.delete_outline,
+                    color: AppColors.error, size: 22),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}

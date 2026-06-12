@@ -5,11 +5,12 @@ const Map<String, String> translationsHu = {
   'email': 'E-mail',
   'password': 'Jelszó',
   'name': 'Teljes név',
-  'portal_upu': 'Sürgősségi portál',
+  'portal_upu': 'Sürgősségi felvételi portál',
   'no_account': 'Nincs fiókod? Regisztrálj',
   'have_account': 'Van már fiókod? Jelentkezz be',
   'create_account': 'Fiók létrehozása',
-  'register_subtitle': 'Regisztrálj a sürgősségi portálhoz',
+  'register_subtitle':
+      'Regisztrálj a sürgősségi felvételi portál eléréséhez',
   'password_min': 'Jelszó * (min. 6 karakter)',
   'cnp_field': 'CNP * (13 jegyű)',
   'hospital_optional': 'Kórház (opcionális)',
@@ -395,6 +396,7 @@ const Map<String, String> translationsHu = {
   'backend_cnp_not_identified':
       'Patient CNP could not be identified. Provide cnp_pacient explicitly or include it in filename/PDF text.',
   'about_project_title': 'Egészség-híd a határ menti közösségek számára',
+  'about_us': 'Rólunk',
   'about_project_subtitle':
       '(Puntea Sănătății pentru comunitățile apropiate)',
   'about_project_description':
@@ -421,12 +423,17 @@ const Map<String, String> translationsHu = {
   'terms_and_conditions': 'felhasználási feltételeket',
   'accept_privacy_prefix': 'Elfogadom az ',
   'privacy_policy': 'adatvédelmi irányelveket',
+  'accept_disclaimer_prefix': 'Elfogadom a ',
   'error_accept_legal':
-      'A regisztrációhoz el kell fogadnia a feltételeket és az adatvédelmi irányelveket.',
+      'A regisztrációhoz el kell fogadnia a feltételeket, az adatvédelmi irányelveket és a projekt felelősségkizárását.',
   'error_accept_legal_both':
-      'El kell fogadnia a feltételeket és az adatvédelmi irányelveket.',
+      'El kell fogadnia a feltételeket, az adatvédelmi irányelveket és a projekt felelősségkizárását.',
+  'error_accept_legal_all':
+      'El kell fogadnia a feltételeket, az adatvédelmi irányelveket és a projekt felelősségkizárását.',
   'error_accept_terms': 'El kell fogadnia a felhasználási feltételeket.',
   'error_accept_privacy': 'El kell fogadnia az adatvédelmi irányelveket.',
+  'error_accept_disclaimer':
+      'El kell fogadnia a projekt felelősségkizárását.',
   'close': 'Bezárás',
   'loading_document': 'Dokumentum betöltése...',
 };

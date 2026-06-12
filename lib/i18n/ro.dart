@@ -2,7 +2,7 @@ const Map<String, String> translationsRo = {
   'fill_all_fields': 'Completează toate câmpurile',
   'error': 'Eroare',
 
-  'portal_upu': 'Portal UPU',
+  'portal_upu': 'Portal primiri urgente',
   'email': 'Email',
   'password': 'Parolă',
   'login': 'Intră în cont',
@@ -14,7 +14,8 @@ const Map<String, String> translationsRo = {
   'no_account': 'Nu ai cont? Înregistrează-te',
   'have_account': 'Ai deja cont? Loghează-te',
   'create_account': 'Creare cont',
-  'register_subtitle': 'Înregistrează-te pentru a accesa portalul UPU',
+  'register_subtitle':
+      'Înregistrează-te pentru a accesa portalul de primiri urgente',
   'password_min': 'Parolă * (min. 6 caractere)',
   'cnp_field': 'CNP * (13 cifre)',
   'hospital_optional': 'Spital (opțional)',
@@ -392,6 +393,7 @@ const Map<String, String> translationsRo = {
       'CNP-ul pacientului nu a putut fi identificat. Introduceți cnp_pacient explicit în payload sau includeți CNP-ul în numele fișierului / textul PDF.',
   'about_project_title':
       'Puntea Sănătății pentru comunitățile apropiate',
+  'about_us': 'Despre noi',
   'about_project_subtitle': '(Health Bridge for Border Communities)',
   'about_project_description':
       'Proiect finanțat din Fondul European de Dezvoltare Regională, în cadrul Programului Interreg NEXT România-Ucraina. Platforma digitală sprijină schimbul securizat de documente medicale între pacienți, însoțitori și personalul medical din spitalele partenere transfrontaliere.',
@@ -406,7 +408,7 @@ const Map<String, String> translationsRo = {
   'about_partner_hu': 'Spitalul Almasi Balogh Pal Ozd (Ungaria)',
   'about_partner_sk': 'Spital cu Policlinică Kralovsky Chlmec (Slovacia)',
   'about_program_website': 'Website program: next.huskroua-cbc.eu',
-  'about_disclaimer': 'Disclaimer proiect',
+  'about_disclaimer': 'anunțurile legale ale proiectului',
   'link_open_failed': 'Nu s-a putut deschide linkul. Verifică conexiunea sau un browser instalat.',
   'pdf_open_external_failed': 'Nu s-a putut deschide PDF-ul. Instalează o aplicație pentru PDF.',
   'pdf_opened_externally': 'Documentul a fost deschis în aplicația externă de PDF.',
@@ -417,14 +419,19 @@ const Map<String, String> translationsRo = {
   'terms_and_conditions': 'termenii și condițiile',
   'accept_privacy_prefix': 'Accept ',
   'privacy_policy': 'politica de confidențialitate',
+  'accept_disclaimer_prefix': 'Accept ',
   'error_accept_legal':
-      'Trebuie să accepți termenii și condițiile și politica de confidențialitate pentru a te înregistra.',
+      'Trebuie să accepți termenii și condițiile, politica de confidențialitate și anunțurile legale ale proiectului pentru a te înregistra.',
   'error_accept_legal_both':
-      'Trebuie să accepți termenii și condițiile și politica de confidențialitate.',
+      'Trebuie să accepți termenii și condițiile, politica de confidențialitate și anunțurile legale alep roiectului.',
+  'error_accept_legal_all':
+      'Trebuie să accepți termenii și condițiile, politica de confidențialitate și anunțurile legale ale proiectului.',
   'error_accept_terms':
       'Trebuie să accepți termenii și condițiile.',
   'error_accept_privacy':
       'Trebuie să accepți politica de confidențialitate.',
+  'error_accept_disclaimer':
+      'Trebuie să accepți disclaimerul proiectului.',
   'close': 'Închide',
   'loading_document': 'Se încarcă documentul...',
 };
