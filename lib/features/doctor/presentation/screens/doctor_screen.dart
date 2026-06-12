@@ -1,0 +1,499 @@
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:spital_visu_upu/data/models/user_model.dart';
+import 'package:spital_visu_upu/data/services/admin_service.dart';
+import 'package:spital_visu_upu/data/services/document_service.dart';
+import 'package:spital_visu_upu/data/services/chat_service.dart';
+import 'package:spital_visu_upu/features/documents/presentation/screens/pdf_viewer_screen.dart';
+import 'package:spital_visu_upu/features/chat/presentation/screens/chat_screen.dart';
+import 'package:spital_visu_upu/features/chat/presentation/screens/chat_conversations_screen.dart';
+import 'package:spital_visu_upu/i18n/language_provider.dart';
+import 'package:spital_visu_upu/i18n/translations.dart';
+import 'package:spital_visu_upu/core/theme/app_colors.dart';
+import 'package:spital_visu_upu/shared/widgets/app_footer.dart';
+import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
+import 'package:spital_visu_upu/shared/utils/app_snackbar.dart';
+import 'package:spital_visu_upu/shared/utils/logout_navigation.dart';
+import 'package:spital_visu_upu/shared/widgets/unread_badge.dart';
+
+/// Main workspace for doctors to browse patients, documents, and messages.
+class DoctorScreen extends StatefulWidget {
+  final UserModel user;
+  const DoctorScreen({super.key, required this.user});
+
+  @override
+  State<DoctorScreen> createState() => _DoctorScreenState();
+}
+
+class _DoctorScreenState extends State<DoctorScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  final _admin = AdminService();
+  final _docService = DocumentService();
+  final _chatService = ChatService();
+
+  String _tr(String key) => LanguageProvider.of(context)?.tr(key) ?? key;
+
+  List<Map<String, dynamic>> _patients = [];
+  List<Map<String, dynamic>> _documents = [];
+  Map<String, dynamic>? _selectedPatient;
+  bool _loadingP = true;
+  bool _loadingD = true;
+  bool _uploading = false;
+  String _searchQuery = '';
+  int _unreadMessages = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _tabs.addListener(() => setState(() {}));
+    _loadPatients();
+    _loadDocs();
+    _loadUnread();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPatients() async {
+    setState(() => _loadingP = true);
+    final list = await _admin.getUsers(role: 'patient');
+    if (mounted) {
+      setState(() {
+        _patients = list;
+        _loadingP = false;
+      });
+    }
+  }
+
+  Future<void> _loadDocs({int? patientId}) async {
+    setState(() => _loadingD = true);
+    final list = await _docService.getDocuments(patientId: patientId);
+    if (mounted) {
+      setState(() {
+        _documents = list;
+        _loadingD = false;
+      });
+    }
+  }
+
+  Future<void> _loadUnread() async {
+    final convs = await _chatService.getConversations();
+    if (mounted) {
+      int total = 0;
+      for (final c in convs) {
+        total += (c['unread_count'] ?? 0) as int;
+      }
+      setState(() => _unreadMessages = total);
+    }
+  }
+
+  /// Called by ChatConversationsScreen whenever it reloads its list.
+  /// Receives the fresh total so we never need a second API call.
+  void _onConversationsUnreadChanged(int newTotal) {
+    if (mounted) setState(() => _unreadMessages = newTotal);
+  }
+
+  Future<void> _uploadForPatient() async {
+    final l = AppLocalizations.of(context);
+    if (_selectedPatient == null) {
+      _snack(l.get('select_patient_first'), isError: true);
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom, allowedExtensions: ['pdf'], withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+
+    setState(() => _uploading = true);
+    final r = await _docService.uploadDocument(
+      file.bytes!,
+      file.name,
+      patientId: _selectedPatient!['id'],
+    );
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    if (r['success'] == true) {
+      _snack(l.get('upload_success'));
+      _loadDocs(patientId: _selectedPatient!['id']);
+    } else {
+      _snack(_tr((r['message'] ?? 'upload_error').toString()), isError: true);
+    }
+  }
+
+  Future<void> _logout() => logoutAndNavigateToLogin(context);
+
+  void _snack(String msg, {bool isError = false}) {
+    showAppSnackBar(context, msg, isError: isError);
+  }
+
+  List<Map<String, dynamic>> get _filteredPatients {
+    if (_searchQuery.isEmpty) return _patients;
+    final q = _searchQuery.toLowerCase();
+    return _patients.where((p) {
+      return (p['name'] ?? '').toLowerCase().contains(q) ||
+          (p['email'] ?? '').toLowerCase().contains(q) ||
+          (p['cnp_pacient'] ?? '').contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.appBar,
+        foregroundColor: Colors.white,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.user.name,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              overflow: TextOverflow.ellipsis),
+          Text(
+            '${l.get('role_doctor')} · ${widget.user.hospitalName}',
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ]),
+        actions: [
+          const LanguageDropdown(),
+          IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: l.get('logout'),
+              onPressed: _logout)
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          tabs: [
+            Tab(
+                icon: const Icon(Icons.people_outline),
+                text: l.get('patients_tab')),
+            Tab(
+                icon: const Icon(Icons.folder_outlined),
+                text: l.get('documents_tab')),
+            Tab(
+              child: Stack(alignment: Alignment.topRight, children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.chat_bubble_outline),
+                      Text(l.get('messages'),
+                          style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+                if (_unreadMessages > 0)
+                  Positioned(
+                    right: 0,
+                    top: 2,
+                    child: UnreadBadge(
+                        count: _unreadMessages, fontSize: 8, minSize: 14),
+                  ),
+              ]),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: TabBarView(controller: _tabs, children: [
+              ProgramEmblemBackground(child: _patientsTab(l)),
+              ProgramEmblemBackground(child: _documentsTab(l)),
+              _chatTab(),
+            ]),
+          ),
+          if (_tabs.index == 1) _addPdfButton(l),
+          const AppFooter(),
+        ],
+      ),
+    );
+  }
+
+  Widget _addPdfButton(AppLocalizations l) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: _uploading ? null : _uploadForPatient,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: _uploading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.upload_file),
+            label: Text(_uploading ? l.get('uploading') : l.get('add_pdf')),
+          ),
+        ),
+      );
+
+  // ── Patients tab ──────────────────────────────────────────────────────────
+
+  Widget _patientsTab(AppLocalizations l) {
+    if (_loadingP) return const Center(child: CircularProgressIndicator());
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: l.get('search_patient_hint'),
+            prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          onChanged: (v) => setState(() => _searchQuery = v),
+        ),
+      ),
+      Expanded(
+        child: RefreshIndicator(
+          onRefresh: _loadPatients,
+          child: _patients.isEmpty
+              ? Center(child: Text(l.get('no_patients')))
+              : _filteredPatients.isEmpty
+                  ? Center(
+                      child: Text(l.get('no_results_for_query'),
+                          style: TextStyle(color: Colors.grey.shade500)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filteredPatients.length,
+                      itemBuilder: (_, i) {
+                        final p = _filteredPatients[i];
+                        final isSelected = _selectedPatient?['id'] == p['id'];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  width: 2)),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                                backgroundColor: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.primary.withOpacity(0.1),
+                                child: Icon(Icons.person,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.primary)),
+                            title: Text(p['name'] ?? '',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p['email'] ?? '',
+                                    style: const TextStyle(fontSize: 12)),
+                                if (p['cnp_pacient'] != null)
+                                  Text('${l.get('cnp')}: ${p['cnp_pacient']}',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade500)),
+                                if (p['hospital'] != null)
+                                  Text(
+                                      '${l.get('hospital')}: ${p['hospital']['name']}',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade500)),
+                              ],
+                            ),
+                            trailing:
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                              IconButton(
+                                icon: const Icon(Icons.chat_bubble_outline,
+                                    color: AppColors.primary, size: 20),
+                                tooltip: l.get('message'),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatScreen(
+                                      currentUser: widget.user,
+                                      patientId: p['id'],
+                                      patientName: p['name'] ?? '',
+                                    ),
+                                  ),
+                                ).then((_) => _loadUnread()),
+                              ),
+                              isSelected
+                                  ? const Icon(Icons.check_circle,
+                                      color: AppColors.primary)
+                                  : const Icon(Icons.chevron_right,
+                                      color: Colors.grey),
+                            ]),
+                            isThreeLine: p['cnp_pacient'] != null,
+                            onTap: () {
+                              setState(() {
+                                _selectedPatient = isSelected ? null : p;
+                                _tabs.animateTo(1);
+                              });
+                              _loadDocs(patientId: isSelected ? null : p['id']);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ),
+    ]);
+  }
+
+  // ── Documents tab ─────────────────────────────────────────────────────────
+
+  Widget _documentsTab(AppLocalizations l) {
+    return Column(children: [
+      if (_selectedPatient != null)
+        Container(
+          color: AppColors.primary.withOpacity(0.08),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(children: [
+            const Icon(Icons.person, color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${l.get('patient_label')}: ${_selectedPatient!['name']}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, color: AppColors.primary)),
+                if (_selectedPatient!['cnp_pacient'] != null)
+                  Text('${l.get('cnp')}: ${_selectedPatient!['cnp_pacient']}',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.primary)),
+              ],
+            )),
+            TextButton(
+              onPressed: () {
+                setState(() => _selectedPatient = null);
+                _loadDocs();
+              },
+              child: Text(l.get('all_patients'),
+                  style: const TextStyle(color: AppColors.primary)),
+            ),
+          ]),
+        )
+      else
+        Container(
+          color: Colors.grey.shade100,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: Colors.grey, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(l.get('select_patient_hint'),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12))),
+          ]),
+        ),
+      Expanded(
+        child: _loadingD
+            ? const Center(child: CircularProgressIndicator())
+            : _documents.isEmpty
+                ? Center(
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.folder_open_outlined,
+                              size: 64, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                              _selectedPatient != null
+                                  ? l.get('no_docs_for_patient')
+                                  : l.get('select_patient_or_refresh'),
+                              style: TextStyle(color: Colors.grey.shade600),
+                              textAlign: TextAlign.center),
+                        ]),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () =>
+                        _loadDocs(patientId: _selectedPatient?['id']),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _documents.length,
+                      itemBuilder: (_, i) {
+                        final doc = _documents[i];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: ListTile(
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                  color:
+                                      AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: const Icon(Icons.picture_as_pdf,
+                                  color: AppColors.primary, size: 26),
+                            ),
+                            title: Text(doc['name'] ?? '',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(doc['created_at'] ?? '',
+                                    style: const TextStyle(fontSize: 11)),
+                                if (doc['owner']?['name'] != null)
+                                  Text(
+                                      '${l.get('patient_label')}: ${doc['owner']['name']}',
+                                      style: const TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                            isThreeLine: doc['owner']?['name'] != null,
+                            trailing: IconButton(
+                              icon: const Icon(Icons.open_in_new,
+                                  color: AppColors.primary),
+                              tooltip: l.get('open_pdf'),
+                              onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PdfViewerScreen(
+                                        url: doc['url'], name: doc['name']),
+                                  )),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+      ),
+    ]);
+  }
+
+  // ── Chat tab ──────────────────────────────────────────────────────────────
+
+  Widget _chatTab() {
+    return ChatConversationsScreen(
+      currentUser: widget.user,
+      // Whenever ChatConversationsScreen reloads its list it fires this
+      // callback with the fresh total, keeping the tab badge in sync.
+      onUnreadChanged: _onConversationsUnreadChanged,
+    );
+  }
+}

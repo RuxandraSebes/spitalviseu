@@ -5,11 +5,12 @@ const Map<String, String> translationsUk = {
   'email': 'Електронна пошта',
   'password': 'Пароль',
   'name': 'Повне ім\'я',
-  'portal_upu': 'Портал швидкої допомоги',
+  'portal_upu': 'Портал невідкладного прийому',
   'no_account': 'Немає облікового запису? Зареєструйтеся',
   'have_account': 'Вже є акаунт? Увійдіть',
   'create_account': 'Створити акаунт',
-  'register_subtitle': 'Зареєструйтеся для доступу до порталу',
+  'register_subtitle':
+      'Зареєструйтеся для доступу до порталу невідкладного прийому',
   'password_min': 'Пароль * (мін. 6 символів)',
   'cnp_field': 'CNP * (13 цифр)',
   'hospital_optional': 'Лікарня (необов\'язково)',
@@ -392,6 +393,7 @@ const Map<String, String> translationsUk = {
   'backend_cnp_not_identified':
       'Patient CNP could not be identified. Provide cnp_pacient explicitly or include it in filename/PDF text.',
   'about_project_title': 'Міст здоров\'я для прикордонних громад',
+  'about_us': 'Про нас',
   'about_project_subtitle':
       '(Puntea Sănătății pentru comunitățile apropiate)',
   'about_project_description':
@@ -418,12 +420,17 @@ const Map<String, String> translationsUk = {
   'terms_and_conditions': 'умови використання',
   'accept_privacy_prefix': 'Я приймаю ',
   'privacy_policy': 'політику конфіденційності',
+  'accept_disclaimer_prefix': 'Я приймаю ',
   'error_accept_legal':
-      'Для реєстрації потрібно прийняти умови та політику конфіденційності.',
+      'Для реєстрації потрібно прийняти умови використання, політику конфіденційності та відмову від відповідальності проєкту.',
   'error_accept_legal_both':
-      'Потрібно прийняти умови використання та політику конфіденційності.',
+      'Потрібно прийняти умови використання, політику конфіденційності та відмову від відповідальності проєкту.',
+  'error_accept_legal_all':
+      'Потрібно прийняти умови використання, політику конфіденційності та відмову від відповідальності проєкту.',
   'error_accept_terms': 'Потрібно прийняти умови використання.',
   'error_accept_privacy': 'Потрібно прийняти політику конфіденційності.',
+  'error_accept_disclaimer':
+      'Потрібно прийняти відмову від відповідальності проєкту.',
   'close': 'Закрити',
   'loading_document': 'Завантаження документа...',
 };

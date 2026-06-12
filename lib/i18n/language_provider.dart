@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'translations.dart';
-import 'package:spital_visu_upu/theme/app_colors.dart';
+import 'package:spital_visu_upu/core/theme/app_colors.dart';
 
 // ── Language notifier ──────────────────────────────────────────────────────
 

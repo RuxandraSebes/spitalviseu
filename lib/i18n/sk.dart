@@ -5,11 +5,12 @@ const Map<String, String> translationsSk = {
   'email': 'E-mail',
   'password': 'Heslo',
   'name': 'Celé meno',
-  'portal_upu': 'Pohotovostný portál',
+  'portal_upu': 'Portál urgentného príjmu',
   'no_account': 'Nemáte účet? Zaregistrujte sa',
   'have_account': 'Máte účet? Prihláste sa',
   'create_account': 'Vytvoriť účet',
-  'register_subtitle': 'Zaregistrujte sa pre prístup k portálu',
+  'register_subtitle':
+      'Zaregistrujte sa pre prístup k portálu urgentného príjmu',
   'password_min': 'Heslo * (min. 6 znakov)',
   'cnp_field': 'CNP * (13 číslic)',
   'hospital_optional': 'Nemocnica (voliteľné)',
@@ -390,6 +391,7 @@ const Map<String, String> translationsSk = {
   'backend_cnp_not_identified':
       'Patient CNP could not be identified. Provide cnp_pacient explicitly or include it in filename/PDF text.',
   'about_project_title': 'Most zdravia pre pohraničné komunity',
+  'about_us': 'O nás',
   'about_project_subtitle':
       '(Puntea Sănătății pentru comunitățile apropiate)',
   'about_project_description':
@@ -416,13 +418,18 @@ const Map<String, String> translationsSk = {
   'terms_and_conditions': 'podmienkami používania',
   'accept_privacy_prefix': 'Súhlasím so ',
   'privacy_policy': 'zásadami ochrany osobných údajov',
+  'accept_disclaimer_prefix': 'Súhlasím s ',
   'error_accept_legal':
-      'Na registráciu musíte súhlasiť s podmienkami a zásadami ochrany osobných údajov.',
+      'Na registráciu musíte súhlasiť s podmienkami používania, zásadami ochrany osobných údajov a zrieknutím sa zodpovednosti projektu.',
   'error_accept_legal_both':
-      'Musíte súhlasiť s podmienkami aj so zásadami ochrany osobných údajov.',
+      'Musíte súhlasiť s podmienkami používania, zásadami ochrany osobných údajov a zrieknutím sa zodpovednosti projektu.',
+  'error_accept_legal_all':
+      'Musíte súhlasiť s podmienkami používania, zásadami ochrany osobných údajov a zrieknutím sa zodpovednosti projektu.',
   'error_accept_terms': 'Musíte súhlasiť s podmienkami používania.',
   'error_accept_privacy':
       'Musíte súhlasiť so zásadami ochrany osobných údajov.',
+  'error_accept_disclaimer':
+      'Musíte súhlasiť so zrieknutím sa zodpovednosti projektu.',
   'close': 'Zavrieť',
   'loading_document': 'Načítava sa dokument...',
 };
