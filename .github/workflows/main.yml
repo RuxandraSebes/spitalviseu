@@ -28,18 +28,40 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Unsigned IPA
-        # Folosim o acțiune stabilă care se ocupă nativ de exportul .ipa din Flutter
-        uses: yukiw/build-flutter-ipa-action@v1.7.0
-        with:
-          # Îi spunem să nu ceară certificate locale, semnarea urmând să se facă în cloud la Apple
-          args: --no-codesign
+      - name: Build Xcode Archive (No Code Signing)
+        run: |
+          # Generăm arhiva de bază în locurile standard
+          flutter build ios --release --no-codesign
+
+      - name: Convert Archive to IPA (Nativ)
+        run: |
+          # Xcode are nevoie de o mini-configurare ca să știe că vrem un export de tip App Store
+          cat <<EOF > ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+          </dict>
+          </plist>
+          EOF
+
+          # Găsim unde a pus Flutter arhiva .xcarchive și rulăm utilitarul oficial Apple
+          ARCHIVE_PATH=$(find build -name "*.xcarchive" | head -n 1)
+          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" -exportPath output_folder -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates
+          
+          # Extragem .ipa-ul generat într-un loc fix și sigur la rădăcină
+          find output_folder -name "*.ipa" -exec cp {} app.ipa \;
+          ls -lh app.ipa
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # Această acțiune salvează automat .ipa-ul generat în path-ul de mai jos
-          app-path: 'output.ipa'
+          # Trimitem direct fișierul .ipa curat (rezolvă eroarea ITunesSoftwareServiceApplicationMustEndWithProperExtension)
+          app-path: 'app.ipa'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
