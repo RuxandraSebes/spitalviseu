@@ -30,24 +30,21 @@ jobs:
 
       - name: Build Xcode Archive
         run: |
-          # Generăm arhiva brută
-          flutter build ios --release --no-codesign
+          # 'build ipa' cu '--no-codesign' garantează crearea folderului .xcarchive
+          flutter build ipa --release --no-codesign
 
       - name: Find and Move Archive
         run: |
-          # Creăm un folder sigur la rădăcină
           mkdir -p final_archive
-          
-          # Căutăm fișierul .xcarchive în tot folderul build și îl mutăm în folderul nostru sigur
+          # Căutăm structura .xcarchive generată de comanda 'build ipa'
           find build -name "*.xcarchive" -exec cp -R {} final_archive/Runner.xcarchive \;
           
-          # Verificăm vizual în log-uri că fișierul chiar există acolo acum
+          # Verificăm că acum fișierul a fost mutat cu succes
           ls -ld final_archive/Runner.xcarchive
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # Acum calea este 100% garantată și fixă
           app-path: 'final_archive/Runner.xcarchive'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
