@@ -3,7 +3,7 @@ name: Build and Deploy to TestFlight
 on:
   push:
     branches:
-      - main # Schimbă în 'master' dacă ramura ta principală se numește așa
+      - main # Schimbă în 'master' dacă e cazul
 
 jobs:
   deploy:
@@ -28,15 +28,27 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Xcode Archive (No Code Signing)
+      - name: Build Xcode Archive
         run: |
-          # Generăm doar arhiva brută Xcode, care nu cere certificate locale
+          # Generăm arhiva brută
           flutter build ios --release --no-codesign
+
+      - name: Find and Move Archive
+        run: |
+          # Creăm un folder sigur la rădăcină
+          mkdir -p final_archive
+          
+          # Căutăm fișierul .xcarchive în tot folderul build și îl mutăm în folderul nostru sigur
+          find build -name "*.xcarchive" -exec cp -R {} final_archive/Runner.xcarchive \;
+          
+          # Verificăm vizual în log-uri că fișierul chiar există acolo acum
+          ls -ld final_archive/Runner.xcarchive
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: 'build/ios/archive/Runner.xcarchive'
+          # Acum calea este 100% garantată și fixă
+          app-path: 'final_archive/Runner.xcarchive'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
