@@ -28,24 +28,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Xcode Archive
-        run: |
-          # 'build ipa' cu '--no-codesign' garantează crearea folderului .xcarchive
-          flutter build ipa --release --no-codesign
-
-      - name: Find and Move Archive
-        run: |
-          mkdir -p final_archive
-          # Căutăm structura .xcarchive generată de comanda 'build ipa'
-          find build -name "*.xcarchive" -exec cp -R {} final_archive/Runner.xcarchive \;
-          
-          # Verificăm că acum fișierul a fost mutat cu succes
-          ls -ld final_archive/Runner.xcarchive
+      - name: Build Unsigned IPA
+        # Folosim o acțiune stabilă care se ocupă nativ de exportul .ipa din Flutter
+        uses: yukiw/build-flutter-ipa-action@v1.7.0
+        with:
+          # Îi spunem să nu ceară certificate locale, semnarea urmând să se facă în cloud la Apple
+          args: --no-codesign
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: 'final_archive/Runner.xcarchive'
+          # Această acțiune salvează automat .ipa-ul generat în path-ul de mai jos
+          app-path: 'output.ipa'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
