@@ -3,7 +3,7 @@ name: Build and Deploy to TestFlight
 on:
   push:
     branches:
-      - main # Schimbă în 'master' dacă e cazul
+      - main # Schimba in 'master' daca e cazul
 
 jobs:
   deploy:
@@ -28,39 +28,28 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Xcode Archive (No Code Signing)
+      - name: Build iOS App Bundle
         run: |
-          # Generăm arhiva de bază în locurile standard
+          # Generam structura de fisiere de iOS fara semnare
           flutter build ios --release --no-codesign
 
-      - name: Convert Archive to IPA (Nativ)
+      - name: Package to IPA (Manual Payload)
         run: |
-          # Xcode are nevoie de o mini-configurare ca să știe că vrem un export de tip App Store
-          cat <<EOF > ExportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-          </dict>
-          </plist>
-          EOF
-
-          # Găsim unde a pus Flutter arhiva .xcarchive și rulăm utilitarul oficial Apple
-          ARCHIVE_PATH=$(find build -name "*.xcarchive" | head -n 1)
-          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" -exportPath output_folder -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates
+          # Cream structura standard ceruta de Apple pentru un fisier .ipa
+          mkdir -p Payload
           
-          # Extragem .ipa-ul generat într-un loc fix și sigur la rădăcină
-          find output_folder -name "*.ipa" -exec cp {} app.ipa \;
+          # Copiem aplicatia compilata de Flutter in folderul Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          
+          # Impachetam folderul ca fisier .ipa folosind utilitarul de zip din macOS
+          zip -r app.ipa Payload
+          
+          # Verificam ca fisierul s-a creat si are dimensiune corecta
           ls -lh app.ipa
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # Trimitem direct fișierul .ipa curat (rezolvă eroarea ITunesSoftwareServiceApplicationMustEndWithProperExtension)
           app-path: 'app.ipa'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
