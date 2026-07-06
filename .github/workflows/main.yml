@@ -30,16 +30,23 @@ jobs:
 
       - name: Build IPA (No Code Signing)
         run: |
-          # Generăm direct fișierul .ipa nesemnat
           flutter build ipa --release --no-codesign
+
+      - name: Locate and Prepare IPA
+        run: |
+          # Căutăm orice fișier .ipa generat în folderul build/ și îl copiem într-un loc fix cu numele 'app.ipa'
+          mkdir -p build/assets_to_upload
+          find build/ios/ipa -name "*.ipa" -exec cp {} build/assets_to_upload/app.ipa \;
+          
+          # Verificăm în log-uri dacă fișierul a fost găsit și mutat cu succes
+          ls -lh build/assets_to_upload/app.ipa
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # Indicăm calea către fișierul .ipa generat de Flutter
-          app-path: 'build/ios/ipa/spital_visu_upu.ipa' 
+          # Acum calea este mereu fixă și sigură:
+          app-path: 'build/assets_to_upload/app.ipa'
           app-type: 'ios'
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          # Am corectat denumirea parametrului aici:
-          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}  
