@@ -42,11 +42,8 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # 1. Pregatim doar pachetele si dependintele Flutter, fara sa rulam build-ul de Xcode prin Flutter
-          flutter pub get
-          
-          # Injectam fisierele de configurare Flutter in proiectul nativ
-          flutter assemble --target=release_ios_bundle_flutter_assets
+          # 1. Generam configuratiile native si descarcam dependintele fara verificare de certificate
+          flutter build ios --config-only --no-codesign
           
           # Instalam pod-urile native direct din folderul /ios
           cd ios && pod install && cd ..
