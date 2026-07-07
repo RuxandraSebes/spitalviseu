@@ -41,19 +41,25 @@ jobs:
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          DEVELOPMENT_TEAM: 'LV6P7A9VZD' # Schimbă cu Team ID-ul tău dacă nu e deja pus
-          PROVISION_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }} # Folosește secretul Base64 curat pe care l-am făcut mai devreme
+          DEVELOPMENT_TEAM: 'LV6P7A9VZD'
+          PROVISION_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }}
         run: |
-          # 1. Generăm configurațiile de bază fără verificare locală
+          # 1. Generam configurarile de baza fara verificare locala
           flutter build ios --config-only --no-codesign
           cd ios && pod install && cd ..
 
-          # 2. Instalăm profilul tău de distribuție direct în folderele de sistem ale Xcode pe macOS
-          # Acest lucru va asigura că Xcode găsește profilul indiferent de setări
+          # 2. Decodam si salvam profilul temporar pe disc
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/app_store.mobileprovision
+          echo "$PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision
 
-          # 3. Creăm fișierul de configurare pentru export, forțând tipul App Store
+          # 3. Extragem automat UUID-ul real al profilului direct din interiorul lui
+          UUID=$(grep -a -A 1 "UUID" ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
+          echo "UUID-ul detectat pentru profil este: $UUID"
+          
+          # Redenumim fisierul cu UUID-ul lui, exact asa cum vrea Xcode in sistem
+          mv ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+
+          # 4. Cream ExportOptions.plist folosind UUID-ul exact
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -70,13 +76,13 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.ApostolFlorin.SpitalulOrasanescViseuDeSus</key>
-                  <string>app_store</string>
+                  <string>$UUID</string>
               </dict>
           </dict>
           </plist>
           EOF
 
-          # 4. Rulăm arhiva forțând SDK-ul de iphoneos și semnarea de distribuție
+          # 5. Rulam arhivarea legand codul direct de UUID-ul extras din cloud/fisier
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -86,12 +92,12 @@ jobs:
             -allowProvisioningUpdates \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_STYLE="Manual" \
-            PROVISIONING_PROFILE_SPECIFIER="app_store" \
+            PROVISIONING_PROFILE="$UUID" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 5. Exportăm arhiva în .ipa final
+          # 6. Exportam in .ipa
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
@@ -101,7 +107,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 6. Mutăm fișierul final în rădăcină
+          # 7. Mutam fisierul in radacina
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
