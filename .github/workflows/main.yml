@@ -44,22 +44,32 @@ jobs:
           DEVELOPMENT_TEAM: 'LV6P7A9VZD'
           PROVISION_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }}
         run: |
-          # 1. Generam configurarile de baza fara verificare locala
-          flutter build ios --config-only --no-codesign
-          cd ios && pod install && cd ..
+          # 1. Curățăm complet configurările CocoaPods vechi și corupte pentru a evita conflictul xcconfig
+          cd ios
+          rm -rf Pods Podfile.lock .symlinks Runner.xcworkspace
+          
+          # Îi spunem lui CocoaPods să își curețe cache-ul local de pe runner
+          pod cache clean --all
+          cd ..
 
-          # 2. Decodam si salvam profilul temporar pe disc
+          # 2. Generăm configurațiile native de bază, forțând Flutter să reconstruiască fișierele .xcconfig corect
+          flutter build ios --config-only --no-codesign
+          
+          # Reinstalăm pod-urile de la zero (acum se vor conecta corect peste Release.xcconfig al Flutter)
+          cd ios
+          pod install
+          cd ..
+
+          # 3. Decodăm și salvăm profilul temporar pe disc
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision
 
-          # 3. Extragem automat UUID-ul real al profilului direct din interiorul lui
+          # 4. Extragem automat UUID-ul real al profilului direct din interiorul lui
           UUID=$(grep -a -A 1 "UUID" ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
           echo "UUID-ul detectat pentru profil este: $UUID"
-          
-          # Redenumim fisierul cu UUID-ul lui, exact asa cum vrea Xcode in sistem
           mv ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
 
-          # 4. Cream ExportOptions.plist folosind UUID-ul exact
+          # 5. Creăm ExportOptions.plist folosind UUID-ul exact
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -82,7 +92,7 @@ jobs:
           </plist>
           EOF
 
-          # 5. Rulam arhivarea legand codul direct de UUID-ul extras din cloud/fisier
+          # 6. Rulăm arhivarea Xcode nativă
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -97,7 +107,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 6. Exportam in .ipa
+          # 7. Exportăm în .ipa
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
@@ -107,7 +117,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 7. Mutam fisierul in radacina
+          # 8. Mutăm fișierul în rădăcină
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
