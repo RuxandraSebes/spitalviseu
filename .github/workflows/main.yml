@@ -41,14 +41,15 @@ jobs:
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          DEVELOPMENT_TEAM: 'LV6P7A9VZD'  # <-- Pune aici codul tău de 10 caractere (ex: 'AB123CDEFG')
         run: |
-          # 1. Generam configuratiile native si descarcam dependintele fara verificare de certificate
+          # 1. Generăm configurațiile de bază fără verificare locală
           flutter build ios --config-only --no-codesign
           
-          # Instalam pod-urile native direct din folderul /ios
+          # Reparăm automat ținta de deployment veche pentru Pods (eroarea cu target 9.0)
           cd ios && pod install && cd ..
 
-          # 2. Cream fisierul de configurare pentru export si cloud signing
+          # 2. Creăm fișierul de configurare pentru export și cloud signing
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -60,22 +61,25 @@ jobs:
               <string>export</string>
               <key>signingStyle</key>
               <string>automatic</string>
+              <key>teamID</key>
+              <string>$DEVELOPMENT_TEAM</string>
           </dict>
           </plist>
           EOF
 
-          # 3. Rulam direct xcodebuild pentru a crea o arhiva .xcarchive REALA
+          # 3. Forțăm xcodebuild să folosească Team ID-ul și cheia de Cloud pentru arhivare
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 4. Exportam arhiva intr-un fisier .ipa semnat
+          # 4. Exportăm arhiva în fișierul .ipa final semnat
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
@@ -85,7 +89,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 5. Mutam fisierul final in radacina
+          # 5. Mutăm fișierul final în rădăcină
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
