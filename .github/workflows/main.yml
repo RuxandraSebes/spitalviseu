@@ -42,8 +42,14 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # 1. Generam manual folderele native cerute de Flutter pentru iOS
-          flutter build ios --config-only
+          # 1. Pregatim doar pachetele si dependintele Flutter, fara sa rulam build-ul de Xcode prin Flutter
+          flutter pub get
+          
+          # Injectam fisierele de configurare Flutter in proiectul nativ
+          flutter assemble --target=release_ios_bundle_flutter_assets
+          
+          # Instalam pod-urile native direct din folderul /ios
+          cd ios && pod install && cd ..
 
           # 2. Cream fisierul de configurare pentru export si cloud signing
           cat <<EOF > ExportOptions.plist
