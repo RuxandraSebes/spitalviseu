@@ -3,7 +3,7 @@ name: Build and Deploy to TestFlight
 on:
   push:
     branches:
-      - main
+      - main # Schimbă în 'master' dacă asta e ramura ta principală
 
 jobs:
   deploy:
@@ -28,15 +28,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Prepare App Store Connect API Key on Runner
-        env:
-          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-        run: |
-          # Xcode caută cheia API într-un folder specific din sistem pentru a face semnarea în cloud
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
-
       - name: Build and Sign IPA (Cloud Sync)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -44,32 +35,37 @@ jobs:
           DEVELOPMENT_TEAM: 'LV6P7A9VZD'
           PROVISION_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }}
         run: |
-          # 1. Curățăm complet configurările CocoaPods vechi și corupte pentru a evita conflictul xcconfig
+          # 1. Configurare cheie privată pentru Xcode Cloud Signing
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+
+          # 2. Dezactivăm funcția experimentală Swift Package Manager din Flutter
+          flutter config --no-enable-swift-package-manager
+
+          # 3. Curățăm complet cache-ul și folderele CocoaPods vechi
           cd ios
           rm -rf Pods Podfile.lock .symlinks Runner.xcworkspace
-          
-          # Îi spunem lui CocoaPods să își curețe cache-ul local de pe runner
           pod cache clean --all
           cd ..
 
-          # 2. Generăm configurațiile native de bază, forțând Flutter să reconstruiască fișierele .xcconfig corect
+          # 4. Generăm fișierele native de configurare pe curat
           flutter build ios --config-only --no-codesign
           
-          # Reinstalăm pod-urile de la zero (acum se vor conecta corect peste Release.xcconfig al Flutter)
+          # 5. Reinstalăm pod-urile native (fără SPM, doar CocoaPods stabil)
           cd ios
           pod install
           cd ..
 
-          # 3. Decodăm și salvăm profilul temporar pe disc
+          # 6. Decodăm și pregătim profilul de distribuție salvat în Secrets
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision
 
-          # 4. Extragem automat UUID-ul real al profilului direct din interiorul lui
+          # 7. Extragem UUID-ul unic al profilului pentru a-l mapa corect în Xcode
           UUID=$(grep -a -A 1 "UUID" ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
-          echo "UUID-ul detectat pentru profil este: $UUID"
+          echo "UUID identificat: $UUID"
           mv ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
 
-          # 5. Creăm ExportOptions.plist folosind UUID-ul exact
+          # 8. Generăm fișierul de instrucțiuni de export (ExportOptions.plist)
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -92,7 +88,7 @@ jobs:
           </plist>
           EOF
 
-          # 6. Rulăm arhivarea Xcode nativă
+          # 9. Rulăm arhivarea nativă Xcode forțând SDK-ul de distribuție (fără erori de dispozitive)
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -107,7 +103,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 7. Exportăm în .ipa
+          # 10. Exportăm arhiva finală într-un fișier .ipa semnat
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
@@ -117,7 +113,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 8. Mutăm fișierul în rădăcină
+          # 11. Scoatem fișierul .ipa la suprafață
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
