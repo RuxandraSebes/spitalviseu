@@ -42,10 +42,10 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # 1. Generăm arhiva brută de Xcode prin Flutter
-          flutter build ios --release --no-codesign
+          # 1. Generam manual folderele native cerute de Flutter pentru iOS
+          flutter build ios --config-only
 
-          # 2. Creăm fișierul de configurare necesar pentru Xcode Cloud Signing
+          # 2. Cream fisierul de configurare pentru export si cloud signing
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,10 +61,20 @@ jobs:
           </plist>
           EOF
 
-          # 3. Îi cerem lui xcodebuild să descarce profilele și să genereze .ipa-ul semnat direct cu cheia API
-          ARCHIVE_PATH=$(find build -name "*.xcarchive" | head -n 1)
+          # 3. Rulam direct xcodebuild pentru a crea o arhiva .xcarchive REALA
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
+
+          # 4. Exportam arhiva intr-un fisier .ipa semnat
           xcodebuild -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
+            -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
             -exportOptionsPlist ExportOptions.plist \
             -allowProvisioningUpdates \
@@ -72,7 +82,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 4. Mutăm fișierul final în rădăcină
+          # 5. Mutam fisierul final in radacina
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
