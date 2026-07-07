@@ -3,7 +3,7 @@ name: Build and Deploy to TestFlight
 on:
   push:
     branches:
-      - main # Schimba in 'master' daca e cazul
+      - main
 
 jobs:
   deploy:
@@ -30,21 +30,20 @@ jobs:
 
       - name: Build iOS App Bundle
         run: |
-          # Generam structura de fisiere de iOS fara semnare
           flutter build ios --release --no-codesign
 
-      - name: Package to IPA (Manual Payload)
+      - name: Package to IPA (With Provisioning Profile)
+        env:
+          PROVISION_PROFILE_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }}
         run: |
-          # Cream structura standard ceruta de Apple pentru un fisier .ipa
           mkdir -p Payload
-          
-          # Copiem aplicatia compilata de Flutter in folderul Payload
           cp -R build/ios/iphoneos/Runner.app Payload/
           
-          # Impachetam folderul ca fisier .ipa folosind utilitarul de zip din macOS
-          zip -r app.ipa Payload
+          # Decodam profilul din GitHub Secrets si il punem in interiorul aplicatiei
+          echo "$PROVISION_PROFILE_BASE64" | base64 --decode > Payload/Runner.app/embedded.mobileprovision
           
-          # Verificam ca fisierul s-a creat si are dimensiune corecta
+          # Impachetam totul intr-un .ipa valid
+          zip -r app.ipa Payload
           ls -lh app.ipa
 
       - name: Upload to TestFlight
