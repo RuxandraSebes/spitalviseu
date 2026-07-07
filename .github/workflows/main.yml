@@ -41,15 +41,19 @@ jobs:
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          DEVELOPMENT_TEAM: 'LV6P7A9VZD'  # <-- Pune aici codul tău de 10 caractere (ex: 'AB123CDEFG')
+          DEVELOPMENT_TEAM: 'LV6P7A9VZD' # Schimbă cu Team ID-ul tău dacă nu e deja pus
+          PROVISION_BASE64: ${{ secrets.MOBILEPROVISION_BASE64 }} # Folosește secretul Base64 curat pe care l-am făcut mai devreme
         run: |
           # 1. Generăm configurațiile de bază fără verificare locală
           flutter build ios --config-only --no-codesign
-          
-          # Reparăm automat ținta de deployment veche pentru Pods (eroarea cu target 9.0)
           cd ios && pod install && cd ..
 
-          # 2. Creăm fișierul de configurare pentru export și cloud signing
+          # 2. Instalăm profilul tău de distribuție direct în folderele de sistem ale Xcode pe macOS
+          # Acest lucru va asigura că Xcode găsește profilul indiferent de setări
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/app_store.mobileprovision
+
+          # 3. Creăm fișierul de configurare pentru export, forțând tipul App Store
           cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -60,26 +64,34 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>signingStyle</key>
-              <string>automatic</string>
+              <string>manual</string>
               <key>teamID</key>
               <string>$DEVELOPMENT_TEAM</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.ApostolFlorin.SpitalulOrasanescViseuDeSus</key>
+                  <string>app_store</string>
+              </dict>
           </dict>
           </plist>
           EOF
 
-          # 3. Forțăm xcodebuild să folosească Team ID-ul și cheia de Cloud pentru arhivare
+          # 4. Rulăm arhiva forțând SDK-ul de iphoneos și semnarea de distribuție
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
+            -sdk iphoneos \
             -archivePath build/ios/archive/Runner.xcarchive \
             -allowProvisioningUpdates \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            CODE_SIGN_STYLE="Manual" \
+            PROVISIONING_PROFILE_SPECIFIER="app_store" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 4. Exportăm arhiva în fișierul .ipa final semnat
+          # 5. Exportăm arhiva în .ipa final
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath output_folder \
@@ -89,7 +101,7 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8"
 
-          # 5. Mutăm fișierul final în rădăcină
+          # 6. Mutăm fișierul final în rădăcină
           find output_folder -name "*.ipa" -exec cp {} app.ipa \;
 
       - name: Upload to TestFlight
