@@ -71,6 +71,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>The app may need access to the camera.</string>
 <key>ITSAppUsesNonExemptEncryption</key>
 <false/>
 </dict>
