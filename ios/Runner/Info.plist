@@ -54,6 +54,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>The app may need access to camera.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The app may need to access the location..</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
