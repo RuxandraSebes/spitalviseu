@@ -1,4 +1,4 @@
-package com.example.spital_app
+package ro.spitalviseu.upu
 
 import io.flutter.embedding.android.FlutterActivity
 
