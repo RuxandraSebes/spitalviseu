@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:spital_visu_upu/data/services/auth_service.dart';
+import 'package:spital_visu_upu/core/constants/api_constants.dart';
 import 'package:spital_visu_upu/i18n/translations.dart';
 import 'package:spital_visu_upu/core/theme/app_colors.dart';
 import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
@@ -37,7 +37,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   Future<void> _downloadPdf() async {
     final client = http.Client();
     try {
-      final baseUrl = AuthService.baseUrl.replaceAll('/api', '');
+      final baseUrl = ApiConstants.serverUrl;
       final url = widget.url.startsWith('http')
           ? widget.url
           : '$baseUrl/${widget.url.replaceFirst(RegExp(r'^/'), '')}';
