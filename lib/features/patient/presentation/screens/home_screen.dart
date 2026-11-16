@@ -14,6 +14,7 @@ import 'package:spital_visu_upu/features/access_code/presentation/screens/genera
 import 'package:spital_visu_upu/features/access_code/presentation/screens/redeem_access_code_screen.dart';
 import 'package:spital_visu_upu/features/chat/presentation/screens/chat_screen.dart';
 import 'package:spital_visu_upu/features/patient/presentation/screens/my_companions_screen.dart';
+import 'package:spital_visu_upu/features/patient/presentation/screens/his_link_screen.dart';
 import 'package:spital_visu_upu/core/theme/app_colors.dart';
 import 'package:spital_visu_upu/shared/widgets/app_footer.dart';
 import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
@@ -473,6 +474,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       builder: (_) => MyCompanionsScreen(user: u))).then((_) {
                 _fetchUnread();
               });
+            },
+          ),
+          _managementRow(
+            icon: Icons.local_hospital_outlined,
+            label: _tr('his_link_row'),
+            color: AppColors.primary,
+            onTap: () async {
+              _clearInlineError();
+              final linked = await Navigator.push<bool>(context,
+                  MaterialPageRoute(builder: (_) => const HisLinkScreen()));
+              if (linked == true) _fetchDocuments();
             },
           ),
         ],
