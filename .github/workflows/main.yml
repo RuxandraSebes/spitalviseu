@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main # Schimbă în 'master' dacă asta e ramura ta principală
+  workflow_dispatch: # permite repornirea manuală din tab-ul Actions
 
 jobs:
   deploy:
-    runs-on: macos-14
+    runs-on: macos-26 # macos-14 a fost retras din GitHub Actions pe 2 noiembrie 2026
     
     steps:
       - name: Checkout repository
@@ -23,7 +24,6 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          architecture: x64
 
       - name: Install dependencies
         run: flutter pub get
