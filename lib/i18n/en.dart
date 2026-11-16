@@ -412,4 +412,38 @@ const Map<String, String> translationsEn = {
   'error_accept_disclaimer': 'You must accept the project disclaimer.',
   'close': 'Close',
   'loading_document': 'Loading document...',
+
+  // his_link_screen.dart
+  'his_link_row':
+      'My emergency department records',
+  'his_link_title':
+      'Emergency records from the hospital',
+  'his_link_intro':
+      'Your Emergency Department (UPU) records can appear automatically among your documents. For your safety, we first confirm it is really you: we send a code to the email address the hospital has in your file.',
+  'his_link_send_code':
+      'Send code',
+  'his_link_code_sent_if_found':
+      'If the hospital has emergency records for the CNP in your account and an email address on file, we have sent you a code. The code is valid for 15 minutes.',
+  'his_link_code_label':
+      '6-digit code',
+  'his_link_confirm':
+      'Confirm',
+  'his_link_no_code_help':
+      'Didn\'t get the code? Check your Spam folder too. If the hospital does not have your email address, ask for it to be updated at the hospital desk.',
+  'his_linked_title':
+      'Your account is linked to your hospital record',
+  'his_linked_desc':
+      'Emergency records appear automatically among your documents, usually within a few minutes of being issued.',
+  'his_linked':
+      'Account linked. Your emergency records will appear among your documents within a few minutes.',
+  'his_already_linked':
+      'Your account is already linked to your hospital record.',
+  'his_link_code_invalid':
+      'Wrong or expired code. Request a new code if needed.',
+  'his_cnp_already_linked':
+      'This CNP is already linked to another account. Please contact the hospital.',
+  'his_link_requires_patient_cnp':
+      'Your account has no CNP. Only patients with a CNP can receive emergency records.',
+  'his_too_many_requests':
+      'Too many attempts. Please try again later.',
 };
