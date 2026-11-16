@@ -12,4 +12,20 @@ void main() {
     expect(ApiConstants.serverUrlFor('http://192.168.0.237:8000/api/'),
         'http://192.168.0.237:8000');
   });
+
+  test('only our API server is trusted with the token', () {
+    final api = Uri.parse('https://api.spitalviseu.ro/api');
+    expect(
+        ApiConstants.isSameServer(
+            Uri.parse('https://api.spitalviseu.ro/api/documents/3/file'), api),
+        isTrue);
+    expect(
+        ApiConstants.isSameServer(
+            Uri.parse('https://api.spitalviseu.ro.evil.com/x.pdf'), api),
+        isFalse);
+    expect(
+        ApiConstants.isSameServer(
+            Uri.parse('http://api.spitalviseu.ro/api/documents/3/file'), api),
+        isFalse);
+  });
 }
