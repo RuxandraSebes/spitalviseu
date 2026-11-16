@@ -16,4 +16,10 @@ class ApiConstants {
 
   static String serverUrlFor(String apiBaseUrl) =>
       apiBaseUrl.replaceFirst(RegExp(r'/api/?$'), '');
+
+  /// True when [url] points at our API server, so it may receive the bearer token.
+  static bool isApiServer(Uri url) => isSameServer(url, Uri.parse(baseUrl));
+
+  static bool isSameServer(Uri url, Uri api) =>
+      url.scheme == api.scheme && url.host == api.host && url.port == api.port;
 }

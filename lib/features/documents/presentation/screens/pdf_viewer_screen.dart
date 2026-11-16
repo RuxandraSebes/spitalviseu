@@ -5,6 +5,7 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:spital_visu_upu/core/constants/api_constants.dart';
+import 'package:spital_visu_upu/data/services/auth_service.dart';
 import 'package:spital_visu_upu/i18n/translations.dart';
 import 'package:spital_visu_upu/core/theme/app_colors.dart';
 import 'package:spital_visu_upu/shared/widgets/program_emblem_background.dart';
@@ -43,6 +44,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           : '$baseUrl/${widget.url.replaceFirst(RegExp(r'^/'), '')}';
 
       final request = http.Request('GET', Uri.parse(url));
+      // Documents are served only to logged-in users; never send the token elsewhere.
+      if (ApiConstants.isApiServer(request.url)) {
+        final token = await AuthService().getToken();
+        if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      }
       final response =
           await client.send(request).timeout(const Duration(seconds: 30));
 
