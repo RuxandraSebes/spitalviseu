@@ -436,38 +436,4 @@ const Map<String, String> translationsHu = {
       'El kell fogadnia a projekt felelősségkizárását.',
   'close': 'Bezárás',
   'loading_document': 'Dokumentum betöltése...',
-
-  // his_link_screen.dart
-  'his_link_row':
-      'Sürgősségi lapjaim',
-  'his_link_title':
-      'Sürgősségi lapok a kórháztól',
-  'his_link_intro':
-      'A Sürgősségi Osztály (UPU) lapjai automatikusan megjelenhetnek a dokumentumaid között. Biztonsági okból először megerősítjük, hogy valóban te vagy az: kódot küldünk arra az e-mail-címre, amely a kórházi nyilvántartásodban szerepel.',
-  'his_link_send_code':
-      'Kód küldése',
-  'his_link_code_sent_if_found':
-      'Ha a kórháznak vannak sürgősségi lapjai a fiókodban szereplő CNP-hez, és van e-mail-címed a nyilvántartásban, küldtünk egy kódot. A kód 15 percig érvényes.',
-  'his_link_code_label':
-      '6 számjegyű kód',
-  'his_link_confirm':
-      'Megerősítés',
-  'his_link_no_code_help':
-      'Nem kaptad meg a kódot? Nézd meg a Spam mappát is. Ha a kórház nem ismeri az e-mail-címedet, kérd a frissítését a kórházi ügyfélszolgálaton.',
-  'his_linked_title':
-      'A fiókod össze van kapcsolva a kórházi nyilvántartással',
-  'his_linked_desc':
-      'A sürgősségi lapok automatikusan megjelennek a dokumentumaid között, általában néhány perccel a kiállításuk után.',
-  'his_linked':
-      'Fiók összekapcsolva. A sürgősségi lapjaid néhány percen belül megjelennek a dokumentumok között.',
-  'his_already_linked':
-      'A fiókod már össze van kapcsolva a kórházi nyilvántartással.',
-  'his_link_code_invalid':
-      'Hibás vagy lejárt kód. Szükség esetén kérj új kódot.',
-  'his_cnp_already_linked':
-      'Ez a CNP már egy másik fiókhoz van kapcsolva. Fordulj a kórházhoz.',
-  'his_link_requires_patient_cnp':
-      'A fiókodhoz nincs CNP megadva. Csak CNP-vel rendelkező páciensek kaphatnak sürgősségi lapokat.',
-  'his_too_many_requests':
-      'Túl sok próbálkozás. Próbáld újra később.',
 };

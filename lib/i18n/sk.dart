@@ -432,38 +432,4 @@ const Map<String, String> translationsSk = {
       'Musíte súhlasiť so zrieknutím sa zodpovednosti projektu.',
   'close': 'Zavrieť',
   'loading_document': 'Načítava sa dokument...',
-
-  // his_link_screen.dart
-  'his_link_row':
-      'Moje záznamy z urgentu',
-  'his_link_title':
-      'Záznamy z urgentu od nemocnice',
-  'his_link_intro':
-      'Záznamy z oddelenia urgentného príjmu (UPU) sa môžu automaticky zobraziť medzi tvojimi dokumentmi. Z bezpečnostných dôvodov najprv overíme, že si to naozaj ty: pošleme ti kód na e-mailovú adresu, ktorú má nemocnica v tvojej dokumentácii.',
-  'his_link_send_code':
-      'Poslať kód',
-  'his_link_code_sent_if_found':
-      'Ak má nemocnica záznamy z urgentu pre CNP v tvojom účte a e-mailovú adresu v dokumentácii, poslali sme ti kód. Kód je platný 15 minút.',
-  'his_link_code_label':
-      '6-miestny kód',
-  'his_link_confirm':
-      'Potvrdiť',
-  'his_link_no_code_help':
-      'Neprišiel ti kód? Skontroluj aj priečinok Spam. Ak nemocnica nemá tvoju e-mailovú adresu, požiadaj o jej aktualizáciu na príjme nemocnice.',
-  'his_linked_title':
-      'Tvoj účet je prepojený s nemocničnou dokumentáciou',
-  'his_linked_desc':
-      'Záznamy z urgentu sa automaticky zobrazia medzi tvojimi dokumentmi, zvyčajne do niekoľkých minút po vystavení.',
-  'his_linked':
-      'Účet prepojený. Tvoje záznamy z urgentu sa zobrazia medzi dokumentmi do niekoľkých minút.',
-  'his_already_linked':
-      'Tvoj účet je už prepojený s nemocničnou dokumentáciou.',
-  'his_link_code_invalid':
-      'Nesprávny alebo neplatný kód. V prípade potreby si vyžiadaj nový kód.',
-  'his_cnp_already_linked':
-      'Toto CNP je už prepojené s iným účtom. Kontaktuj nemocnicu.',
-  'his_link_requires_patient_cnp':
-      'Tvoj účet nemá CNP. Záznamy z urgentu môžu dostávať iba pacienti s CNP.',
-  'his_too_many_requests':
-      'Príliš veľa pokusov. Skús to znova neskôr.',
 };
