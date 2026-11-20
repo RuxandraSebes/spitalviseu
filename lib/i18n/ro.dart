@@ -434,38 +434,4 @@ const Map<String, String> translationsRo = {
       'Trebuie să accepți disclaimerul proiectului.',
   'close': 'Închide',
   'loading_document': 'Se încarcă documentul...',
-
-  // his_link_screen.dart
-  'his_link_row':
-      'Fișele mele de la UPU',
-  'his_link_title':
-      'Fișe UPU de la spital',
-  'his_link_intro':
-      'Fișele de la Primiri Urgențe (UPU) pot apărea automat în documentele tale. Pentru siguranță, confirmăm mai întâi că ești chiar tu: îți trimitem un cod pe adresa de email pe care spitalul o are în dosarul tău.',
-  'his_link_send_code':
-      'Trimite codul',
-  'his_link_code_sent_if_found':
-      'Dacă spitalul are fișe UPU pentru CNP-ul din contul tău și o adresă de email în dosar, ți-am trimis un cod. Codul este valabil 15 minute.',
-  'his_link_code_label':
-      'Cod de 6 cifre',
-  'his_link_confirm':
-      'Confirmă',
-  'his_link_no_code_help':
-      'Nu ai primit codul? Verifică și folderul Spam. Dacă spitalul nu are adresa ta de email, cere actualizarea ei la ghișeul spitalului.',
-  'his_linked_title':
-      'Contul tău este asociat cu dosarul spitalului',
-  'his_linked_desc':
-      'Fișele UPU apar automat în documentele tale, de obicei în câteva minute după ce sunt emise.',
-  'his_linked':
-      'Cont asociat. Fișele tale UPU vor apărea în documente în câteva minute.',
-  'his_already_linked':
-      'Contul este deja asociat cu dosarul spitalului.',
-  'his_link_code_invalid':
-      'Cod greșit sau expirat. Cere un cod nou dacă e nevoie.',
-  'his_cnp_already_linked':
-      'Acest CNP este deja asociat cu alt cont. Contactează spitalul.',
-  'his_link_requires_patient_cnp':
-      'Contul tău nu are CNP. Doar pacienții cu CNP pot primi fișe UPU.',
-  'his_too_many_requests':
-      'Prea multe încercări. Încearcă din nou mai târziu.',
 };
