@@ -1,0 +1,6 @@
+# Copiaza acest fisier ca `key.properties` si completeaza valorile reale.
+# `key.properties` si fisierele .jks sunt deja in .gitignore - NU le urca in git.
+storePassword=PAROLA_KEYSTORE
+keyPassword=PAROLA_CHEIE
+keyAlias=upload
+storeFile=/home/ruxandra/keys/spital-viseu-upload.jks
